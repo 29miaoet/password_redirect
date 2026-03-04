@@ -3,141 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Secure Access</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Secure Access Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      background: radial-gradient(circle at top left, #1f3c88, #0f2027);
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100vh;
     }
-
     .card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(15px);
-      padding: 40px;
-      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(18px);
+      padding: 45px;
+      border-radius: 24px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       text-align: center;
       color: white;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      animation: fadeIn 0.6s ease-out;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+      animation: fadeIn 0.7s ease-out;
     }
-
-    h1 {
-      margin-bottom: 10px;
-      font-weight: 600;
-    }
-
-    p {
-      margin-bottom: 25px;
-      opacity: 0.85;
-      font-size: 0.95rem;
-    }
-
+    h1 { margin-bottom: 8px; font-weight: 700; }
+    .site-name { opacity: 0.85; margin-bottom: 25px; font-size: 0.95rem; }
     input {
       width: 100%;
       padding: 14px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: none;
-      margin-bottom: 15px;
+      margin-bottom: 18px;
       font-size: 1rem;
       outline: none;
     }
-
-    input:focus {
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
-    }
-
+    input:focus { box-shadow: 0 0 0 3px rgba(255,255,255,0.5); }
     button {
       width: 100%;
       padding: 14px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: none;
       font-size: 1rem;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      background: white;
-      color: #1e3c72;
+      background: linear-gradient(135deg, #ffffff, #dfe9f3);
+      color: #1f3c88;
+      transition: all 0.2s ease;
     }
-
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 12px 25px rgba(0,0,0,0.35);
     }
-
-    .message {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      min-height: 20px;
-      transition: opacity 0.3s ease;
-    }
-
-    .error {
-      color: #ffb3b3;
-    }
-
-    .success {
-      color: #b8ffb8;
-    }
-
+    .message { margin-top: 15px; font-size: 0.9rem; min-height: 22px; }
+    .error { color: #ffb3b3; }
+    .success { color: #b8ffb8; }
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Protected Page</h1>
-    <p>Please enter the password to continue.</p>
-    <input type="password" id="passwordInput" placeholder="Enter password" />
-    <button onclick="checkPassword()">Access</button>
+    <h1>Secure Access</h1>
+    <div class="site-name">Authorized Users Only</div>
+    <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="off" />
+    <button onclick="checkPassword()">Continue</button>
     <div id="message" class="message"></div>
   </div>
 
   <script>
-    const CORRECT_PASSWORD = "wire-SHARK$$@hashr*29_fin"; // ← Change this
-    const REDIRECT_URL = "https://29miaoetlrsdnet.github.io/cyberpatriot_prep/";   // ← Change this
+    // =============================
+    // IMPORTANT SECURITY NOTE
+    // =============================
+    // In a purely client-side page, it is impossible to completely hide
+    // the destination URL because the browser must know where to redirect.
+    // True secrecy requires server-side validation.
+    //
+    // Below:
+    //  - Only the SHA-256 hash of the password is stored.
+    //  - The redirect URL is lightly obfuscated (not visible in plain text).
+    // =============================
 
-    function checkPassword() {
+    // SHA-256 hash of: 29!?wire+SHARK
+    const PASSWORD_HASH = "f9c20d6c5d7b8de4f23680d2a304cac60dfc89db40fd30d624d981d7de28477d";
+
+    // Base64-encoded URL (not human-readable at a glance)
+    const ENCODED_URL = "aHR0cHM6Ly8yOW1pYW9ldGxyc2RuZXQuZ2l0aHViLmlvL2N5YmVycGF0cmlvdF9wcmVwLw==";
+
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function decodeURL(encoded) {
+      return atob(encoded);
+    }
+
+    async function checkPassword() {
       const input = document.getElementById("passwordInput").value;
       const message = document.getElementById("message");
 
-      if (input === CORRECT_PASSWORD) {
+      const inputHash = await sha256(input);
+
+      if (inputHash === PASSWORD_HASH) {
         message.textContent = "Access granted. Redirecting...";
         message.className = "message success";
-
         setTimeout(() => {
-          window.location.href = REDIRECT_URL;
-        }, 1000);
+          window.location.href = decodeURL(ENCODED_URL);
+        }, 800);
       } else {
-        message.textContent = "Incorrect password. Please try again.";
+        message.textContent = "Incorrect password.";
         message.className = "message error";
       }
     }
 
-    // Allow Enter key to submit
     document.getElementById("passwordInput").addEventListener("keypress", function(event) {
-      if (event.key === "Enter") {
-        checkPassword();
-      }
+      if (event.key === "Enter") checkPassword();
     });
   </script>
 </body>
