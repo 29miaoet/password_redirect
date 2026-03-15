@@ -123,8 +123,12 @@ button:disabled {
 </div>
 
 <script>
-const correctPassword = "f6f8blue"; 
-const redirectURL = "https://29miaoet.github.io/Andrew_WebPage/"; 
+// Base64 encoded password and redirect URL
+const encodedPassword = "ZjZmOGJsdWU=";  // "f6f8blue" in Base64
+const encodedRedirectURL = "aHR0cHM6Ly8yOW1pYW9ldC5naXRodWIuaW8vQW5kcmV3X1dlYlBhZ2Uv"; // URL in Base64
+
+let correctPassword = atob(encodedPassword); // Decode the password from Base64
+let redirectURL = atob(encodedRedirectURL); // Decode the redirect URL from Base64
 
 let maxRetries = 3; // Max number of retries allowed
 let attemptCount = 0;
