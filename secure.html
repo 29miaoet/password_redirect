@@ -93,9 +93,9 @@ function base64ToBytes(base64){
 }
 
 // --- Encrypted values generated from Python ---
-const encryptedURL = "rz+/HCtihSvNzMjHf0WDCUQeJmbTuRweem8kvN8fKZmatryjLKBS8FBzRNRYTpeJLiZs//hqThPceA==";
-const salt = base64ToBytes("cZPQXB6hMdqVxqD7w2fAew==");
-const iv = base64ToBytes("4BXFaexCy7KBoKyR");
+const encryptedURL = "M2pH1R8geaScCfnR5hW4e7I7dNEAl4mhceVAExIIVeoOnXe3soOyMJ2fm538ewpz6ObjpfWgEZ2Evw==";
+const salt = base64ToBytes("yskH4RRzyU7uyqcrX8tDyg==");
+const iv = base64ToBytes("cbOyGB1cVNmyN5Ey");
 
 async function deriveKey(password){
     const enc = new TextEncoder();
