@@ -13,23 +13,15 @@ body {
     align-items: center;
     justify-content: center;
     font-family: Arial, Helvetica, sans-serif;
-    background: linear-gradient(135deg, #dfeffe, #c0ddfb); /* Fading from #dfeffe to #c0ddfb */
+    background: linear-gradient(135deg, #dfeffe, #c0ddfb);
     background-size: 300% 300%;
     animation: gradientAnimation 6s ease infinite;
 }
-
 @keyframes gradientAnimation {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
-
 .container {
     background: #fff;
     padding: 40px;
@@ -38,74 +30,17 @@ body {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     text-align: center;
 }
-
-h1 {
-    margin-bottom: 15px;
-    font-size: 28px;
-    font-weight: 600;
-    color: #333;
-}
-
-p {
-    color: #666;
-    font-size: 16px;
-    margin-bottom: 30px;
-}
-
-input, button {
-    width: 100%;
-    padding: 14px;
-    border-radius: 8px;
-    font-size: 16px;
-    box-sizing: border-box;
-}
-
-input {
-    border: 1px solid #ddd;
-    margin-bottom: 15px;
-    transition: border-color 0.3s;
-}
-
-input:focus {
-    outline: none;
-    border-color: #6a5ff7;
-}
-
-button {
-    border: none;
-    background: #6a5ff7;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.3s;
-}
-
-button:hover {
-    background: #5a4dd6;
-}
-
-button:disabled {
-    background: #b4b4b4;
-    cursor: not-allowed;
-}
-
-.error {
-    color: red;
-    font-size: 14px;
-    margin-top: 10px;
-    display: none;
-}
-
-.retry-message {
-    font-size: 14px;
-    color: #ff9800;
-    margin-top: 10px;
-}
-
-@media (max-width: 480px) {
-    .container {
-        width: 280px;
-    }
-}
+h1 { margin-bottom: 15px; font-size: 28px; font-weight: 600; color: #333; }
+p { color: #666; font-size: 16px; margin-bottom: 30px; }
+input, button { width: 100%; padding: 14px; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+input { border: 1px solid #ddd; margin-bottom: 15px; transition: border-color 0.3s; }
+input:focus { outline: none; border-color: #6a5ff7; }
+button { border: none; background: #6a5ff7; color: white; cursor: pointer; transition: background-color 0.3s, transform 0.3s; }
+button:hover { background: #5a4dd6; }
+button:disabled { background: #b4b4b4; cursor: not-allowed; }
+.error { color: red; font-size: 14px; margin-top: 10px; display: none; }
+.retry-message { font-size: 14px; color: #ff9800; margin-top: 10px; }
+@media (max-width: 480px) { .container { width: 280px; } }
 </style>
 </head>
 
@@ -116,32 +51,66 @@ button:disabled {
     <p>Please enter the password to continue</p>
 
     <input type="password" id="password" placeholder="Enter password">
-    <button id="continueBtn" onclick="checkPassword()">Continue</button>
+    <button id="continueBtn" onclick="unlock()">Continue</button>
 
     <div class="error" id="error">Incorrect password</div>
     <div class="retry-message" id="retryMessage"></div>
 </div>
 
 <script>
-// Base64 encoded password and redirect URL
-const encodedPassword = "ZjZmOGJsdWU=";  // "****************" encoded
-const encodedRedirectURL = "aHR0cHM6Ly8yOW1pYW9ldC5naXRodWIuaW8vQW5kcmV3X1dlYlBhZ2Uv"; // URL encoded
+// ===== ENCRYPTED DATA =====
+const encryptedHex = "062029c713f98323a65dc3eccb26fa5e6dc673f75e32a70e2ae674430a8c0f311d2de6e5dc826354fb54c537f2f9b8298f0cf0502a4ee70a1a1d";
+const saltHex = "4799b1ef76716ce6c30be201d60a73c9";
+const ivHex = "f14ed6055908cb85db8003c5";
 
-let correctPassword = atob(encodedPassword);
-let redirectURL = atob(encodedRedirectURL);
+function hexToUint8Array(hex) {
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i,2),16));
+    return new Uint8Array(bytes);
+}
 
-let maxRetries = 3; // Max number of retries allowed
+const encryptedData = hexToUint8Array(encryptedHex);
+const salt = hexToUint8Array(saltHex);
+const iv = hexToUint8Array(ivHex);
+
+let maxRetries = 3;
 let attemptCount = 0;
 
-function checkPassword() {
-    const input = document.getElementById("password").value;
+// ===== KEY DERIVATION =====
+async function deriveKey(password) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: salt, iterations: 150000, hash: "SHA-256" },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    );
+}
+
+// ===== UNLOCK FUNCTION =====
+async function unlock() {
+    const password = document.getElementById("password").value;
     const errorElement = document.getElementById("error");
     const retryMessageElement = document.getElementById("retryMessage");
     const continueBtn = document.getElementById("continueBtn");
 
-    if (input === correctPassword) {
-        window.location.href = redirectURL;
-    } else {
+    errorElement.style.display = "none";
+    retryMessageElement.textContent = "";
+
+    try {
+        const key = await deriveKey(password);
+        const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            encryptedData
+        );
+        const url = new TextDecoder().decode(decryptedBuffer);
+        window.location.href = url;
+    } catch (e) {
         attemptCount++;
         errorElement.style.display = "block";
 
@@ -154,10 +123,11 @@ function checkPassword() {
     }
 }
 
+// Enable Enter key
 document.getElementById("password")
 .addEventListener("keypress", function(e) {
     if (e.key === "Enter" && !document.getElementById("continueBtn").disabled) {
-        checkPassword();
+        unlock();
     }
 });
 </script>
