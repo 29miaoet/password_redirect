@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AES Key Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    textarea {
+      height: 80px;
+      font-family: monospace;
+      resize: vertical;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .section {
+      margin-top: 15px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+	
+	.info-box {
+	background: #eef6ff;
+	border-left: 5px solid #3b82f6;
+	padding: 15px;
+	margin-bottom: 20px;
+	border-radius: 6px;
+	}
+
+	.info-box h3 {
+	margin-top: 0;
+	}
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Authentication Security Key Generate</h2>
+  <details class="info-box">
+  <summary><strong>Info</strong></summary>
+  <p>
+    Generates a key for secure client side authentication, please be precise when entering your input.
+	DO NOT enter a partial url like "www.example.com", instead, include the full text, for example: 
+	"https://www.example.com". For security, the IV and salt will change every time, so results will not 
+	match up.
+  </p>
+  </details>
+
+  <div class="grid">
+    <input type="text" id="password" placeholder="Enter password">
+    <input type="text" id="url" placeholder="Enter redirection URL">
+  </div>
+
+  <button onclick="runCrypto()">Generate Key</button>
+
+  <div class="section">
+    <label>Salt (hex):</label>
+    <textarea id="salt" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <label>IV (hex):</label>
+    <textarea id="iv" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <label>Encrypted Data (hex):</label>
+    <textarea id="encrypted" readonly></textarea>
+  </div>
+
+  <div class="section">
+    <label>Decrypted Result (verification):</label>
+    <textarea id="decrypted" readonly></textarea>
+  </div>
+</div>
+
+<script>
+async function runCrypto() {
+  const password = document.getElementById("password").value;
+  const url = document.getElementById("url").value;
+
+  const saltBox = document.getElementById("salt");
+  const ivBox = document.getElementById("iv");
+  const encryptedBox = document.getElementById("encrypted");
+  const decryptedBox = document.getElementById("decrypted");
+
+  function uint8ArrayToHex(uint8arr) {
+    return Array.from(uint8arr).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 150000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt','decrypt']
+    );
+  }
+
+  try {
+    // Generate salt + IV
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    saltBox.value = uint8ArrayToHex(salt);
+    ivBox.value = uint8ArrayToHex(iv);
+
+    // Encrypt
+    const key = await deriveKey(password, salt);
+    const enc = new TextEncoder();
+
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv },
+      key,
+      enc.encode(url)
+    );
+
+    const encrypted = new Uint8Array(encryptedBuffer);
+    encryptedBox.value = uint8ArrayToHex(encrypted);
+
+    // Decrypt
+    const key2 = await deriveKey(password, salt);
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv },
+      key2,
+      encrypted
+    );
+
+    const dec = new TextDecoder();
+    decryptedBox.value = dec.decode(decryptedBuffer);
+
+  } catch (e) {
+    decryptedBox.value = "Error: " + e.message;
+  }
+}
+</script>
+
+</body>
+</html>
