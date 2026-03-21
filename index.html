@@ -58,10 +58,12 @@ button:disabled { background: #b4b4b4; cursor: not-allowed; }
 </div>
 
 <script>
-// All the required values for AES are here, come and use them to bruteforce the site!
+    
+//===========================================================================================================================================//
 const encryptedHex = "062029c713f98323a65dc3eccb26fa5e6dc673f75e32a70e2ae674430a8c0f311d2de6e5dc826354fb54c537f2f9b8298f0cf0502a4ee70a1a1d";
 const saltHex = "4799b1ef76716ce6c30be201d60a73c9";
 const ivHex = "f14ed6055908cb85db8003c5";
+//===========================================================================================================================================//
 
 function hexToUint8Array(hex) {
     const bytes = [];
@@ -76,7 +78,6 @@ const iv = hexToUint8Array(ivHex);
 let maxRetries = 3;
 let attemptCount = 0;
 
-// This key derivation function uses SHA-256, which is totally insecure, "not".
 async function deriveKey(password) {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
