@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Protected Access</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #dfeffe, #c0ddfb);
+    background-size: 300% 300%;
+    animation: gradientAnimation 6s ease infinite;
+}
+@keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.container {
+    background: #fff;
+    padding: 40px;
+    width: 320px;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+h1 { margin-bottom: 15px; font-size: 28px; font-weight: 600; color: #333; }
+p { color: #666; font-size: 16px; margin-bottom: 30px; }
+input, button { width: 100%; padding: 14px; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+input { border: 1px solid #ddd; margin-bottom: 15px; transition: border-color 0.3s; }
+input:focus { outline: none; border-color: #6a5ff7; }
+button { border: none; background: #6a5ff7; color: white; cursor: pointer; transition: background-color 0.3s, transform 0.3s; }
+button:hover { background: #5a4dd6; }
+button:disabled { background: #b4b4b4; cursor: not-allowed; }
+.error { color: red; font-size: 14px; margin-top: 10px; display: none; }
+.retry-message { font-size: 14px; color: #ff9800; margin-top: 10px; }
+@media (max-width: 480px) { .container { width: 280px; } }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Protected Page</h1>
+    <p>Please enter the password to continue</p>
+
+    <input type="password" id="password" placeholder="Enter password">
+    <button id="continueBtn" onclick="unlock()">Continue</button>
+
+    <div class="error" id="error">Incorrect password</div>
+    <div class="retry-message" id="retryMessage"></div>
+</div>
+
+<script>
+    
+//=================================================================================================================================================//
+const encryptedHex = "6b5e97de8b691aa4f0bb7641fccec440aaec4693ebc8e87d11c05cc496af4abbe63dfd72c21311f3e360532d3a633b40aea691db3ceff69608fbba6fa9";
+const saltHex = "8a3cd1df5679e47260f44e4a7b544fe4";
+const ivHex = "21156c152364dc666a8decaf";
+//=================================================================================================================================================//
+
+function hexToUint8Array(hex) {
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i,2),16));
+    return new Uint8Array(bytes);
+}
+
+const encryptedData = hexToUint8Array(encryptedHex);
+const salt = hexToUint8Array(saltHex);
+const iv = hexToUint8Array(ivHex);
+
+let maxRetries = 3;
+let attemptCount = 0;
+
+async function deriveKey(password) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: salt, iterations: 150000, hash: "SHA-256" },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    );
+}
+
+async function unlock() {
+    const password = document.getElementById("password").value;
+    const errorElement = document.getElementById("error");
+    const retryMessageElement = document.getElementById("retryMessage");
+    const continueBtn = document.getElementById("continueBtn");
+
+    errorElement.style.display = "none";
+    retryMessageElement.textContent = "";
+
+    try {
+        const key = await deriveKey(password);
+        const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            encryptedData
+        );
+        const url = new TextDecoder().decode(decryptedBuffer);
+        window.location.href = url;
+    } catch (e) {
+        attemptCount++;
+        errorElement.style.display = "block";
+
+        if (attemptCount >= maxRetries) {
+            continueBtn.disabled = true;
+            retryMessageElement.textContent = "Maximum attempts reached. Please try again later.";
+        } else {
+            retryMessageElement.textContent = `${maxRetries - attemptCount} attempts remaining.`;
+        }
+    }
+}
+
+document.getElementById("password")
+.addEventListener("keypress", function(e) {
+    if (e.key === "Enter" && !document.getElementById("continueBtn").disabled) {
+        unlock();
+    }
+});
+</script>
+
+</body>
+</html>
