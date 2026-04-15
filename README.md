@@ -7,9 +7,10 @@ containing the destination website.
 While this method is imperfect, it provides basic functional security locally, 
 without need of a server or backend. It is also easy to set up, just use the 
 [AES Key Tool](https://29miaoet.github.io/password_redirect/key_generate.html), 
-or the raw [JavaScript browser console code](https://29miaoet.github.io/password_redirect/key_generate.js) 
+or the raw [JavaScript browser console code](https://github.com/29miaoet/password_redirect/blob/main/key_generate.js) 
 to get the relevant salt, iv and encrypted string. Then paste it into the relevant areas of the
-[template script](); after you are done, add it to your code and you have a functional client-side 
+[template script](https://github.com/29miaoet/password_redirect/blob/main/template.js); 
+after you are done, add it to your code and you have a functional client-side 
 authenticator!  
 
 Attributes:
