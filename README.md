@@ -3,6 +3,7 @@ This project was created to provide a secure method of authentication without
 need of a server. To achieve this goal, the page takes the user input, 
 derives a key with it that may or may not unlock an AES-Encrypted string
 containing the destination website.   
+<br>
 While this method is imperfect, it provides basic functional security locally, 
 without need of a server or backend. It is also easy to set up, just use the 
 [AES Key Tool](https://29miaoet.github.io/password_redirect/key_generate.html), 
